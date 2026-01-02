@@ -15,6 +15,41 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="styleApp.css">
+    <style>
+        /* MP3 Player styling for the modal */
+        .audio-container {
+            padding: 40px;
+            background: #222;
+            border-radius: 0 0 15px 15px;
+            text-align: center;
+        }
+
+        audio {
+            width: 100%;
+            filter: invert(100%);
+        }
+
+        /* Overriding Bootstrap Primary to match your variable */
+        .btn-primary-custom {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: white !important;
+        }
+
+        .btn-outline-primary-custom {
+            color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+        }
+
+        .btn-outline-primary-custom:hover {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+
+        .text-custom-primary {
+            color: var(--primary-color) !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -43,10 +78,16 @@
                 <div class="playlist-sidebar">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold m-0 text-custom-primary">Library</h5>
-                        <button class="btn btn-sm text-white" style="background-color: var(--primary-color);"
-                            data-bs-toggle="modal" data-bs-target="#newListModal">
-                            <i class="bi bi-plus-lg"></i>
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary-custom" data-bs-toggle="modal"
+                                data-bs-target="#addMp3Modal" title="Add MP3">
+                                <i class="bi bi-filetype-mp3"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal"
+                                data-bs-target="#newListModal">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="list-group" id="playlistSidebar"></div>
                 </div>
@@ -82,11 +123,10 @@
                     </div>
 
                     <div id="emptyState" class="empty-state" style="display:none;">
-                        <i class="bi bi-music-note-beamed display-1"></i>
+                        <i class="bi bi-music-note-beamed display-1 text-custom-primary"></i>
                         <h4 class="fw-bold">This list is empty</h4>
                         <p>Time to add some Songs!</p>
-                        <a href="search.html" class="btn text-white rounded-pill px-4 mt-2"
-                            style="background-color: var(--primary-color);">Find Music</a>
+                        <a href="search.html" class="btn btn-primary-custom rounded-pill px-4 mt-2">Find Music</a>
                     </div>
                 </div>
             </div>
@@ -106,8 +146,34 @@
                     <div class="invalid-feedback">Playlist name required or already exists.</div>
                 </div>
                 <div class="modal-footer border-0">
-                    <button class="btn text-white w-100 fw-bold" style="background-color: var(--primary-color);"
-                        onclick="handleCreateList()">Create Playlist</button>
+                    <button class="btn btn-primary-custom w-100 fw-bold" onclick="handleCreateList()">Create
+                        Playlist</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addMp3Modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow border-0">
+                <div class="modal-header text-white" style="background-color: var(--primary-color);">
+                    <h5 class="modal-title">Add MP3 Song</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Song Title</label>
+                        <input type="text" id="mp3Title" class="form-control" placeholder="e.g. My Favorite Song">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">MP3 URL</label>
+                        <input type="text" id="mp3Url" class="form-control" placeholder="https://example.com/song.mp3">
+                        <small class="text-muted">Must be a direct link to an .mp3 file</small>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-primary-custom w-100 fw-bold" onclick="handleMp3Save()">Add to
+                        Playlist</button>
                 </div>
             </div>
         </div>
@@ -117,7 +183,13 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content bg-dark border-0">
                 <div class="modal-body p-0">
-                    <div class="ratio ratio-16x9"><iframe id="ytFrame" allowfullscreen allow="autoplay"></iframe></div>
+                    <div id="ytContainer" class="ratio ratio-16x9">
+                        <iframe id="ytFrame" allowfullscreen allow="autoplay"></iframe>
+                    </div>
+                    <div id="mp3Container" class="audio-container" style="display:none;">
+                        <h5 id="mp3PlayingTitle" class="text-white mb-4"></h5>
+                        <audio id="mp3Player" controls></audio>
+                    </div>
                 </div>
             </div>
         </div>
@@ -181,119 +253,135 @@
             body.innerHTML = playlist.songs.map((s, i) => `
                 <tr>
                     <td>${i + 1}</td>
-                    <td class="fw-bold song-title-cell">${s.title}</td>
+                    <td class="fw-bold song-title-cell">
+                        ${s.type === 'mp3' ? '<i class="bi bi-file-earmark-music me-2 text-custom-primary"></i>' : '<i class="bi bi-youtube me-2 text-danger"></i>'}
+                        ${s.title}
+                    </td>
                     <td class="text-center"><input type="number" class="rating-input" min="1" max="10" value="${s.rating || 1}" onchange="updateRating('${s.id}', this.value)"></td>
-                    <td class="text-center"><button class="btn btn-sm btn-primary" onclick="playSong('${s.id}')"><i class="bi bi-play-fill"></i></button></td>
+                    <td class="text-center"><button class="btn btn-sm btn-primary-custom" onclick="playSong('${s.id}')"><i class="bi bi-play-fill"></i></button></td>
                     <td class="text-center"><button class="btn btn-sm btn-danger" onclick="removeSong('${s.id}')"><i class="bi bi-trash"></i></button></td>
                 </tr>
             `).join('');
         }
 
-        function filterSongs() {
-            const val = document.getElementById('songFilter').value.toLowerCase();
-            const rows = document.querySelectorAll('#songsBody tr');
-            rows.forEach(row => {
-                const title = row.querySelector('.song-title-cell').innerText.toLowerCase();
-                row.style.display = title.includes(val) ? "" : "none";
+        async function handleMp3Save() {
+            const titleInp = document.getElementById('mp3Title');
+            const urlInp = document.getElementById('mp3Url');
+            const title = titleInp.value.trim();
+            const url = urlInp.value.trim();
+
+            if (!activeList) { alert("Please select a playlist."); return; }
+            if (!title || !url) { alert("Fill all fields."); return; }
+
+            const playlist = user.playlists.find(p => p.name === activeList);
+            playlist.songs.push({
+                id: 'mp3_' + Date.now(),
+                title: title,
+                url: url,
+                type: 'mp3',
+                rating: 1
             });
+
+            await saveData();
+            titleInp.value = ""; urlInp.value = "";
+            bootstrap.Modal.getInstance(document.getElementById('addMp3Modal')).hide();
+            loadPlaylist(activeList);
         }
 
+        function playSong(id) {
+            const playlist = user.playlists.find(p => p.name === activeList);
+            const song = playlist.songs.find(s => s.id === id);
+
+            const ytContainer = document.getElementById('ytContainer');
+            const mp3Container = document.getElementById('mp3Container');
+            const ytFrame = document.getElementById('ytFrame');
+            const mp3Player = document.getElementById('mp3Player');
+
+            if (song.type === 'mp3') {
+                ytContainer.style.display = 'none';
+                ytFrame.src = "";
+                mp3Container.style.display = 'block';
+                document.getElementById('mp3PlayingTitle').innerText = song.title;
+                mp3Player.src = song.url;
+                mp3Player.play();
+            } else {
+                mp3Container.style.display = 'none';
+                mp3Player.src = "";
+                ytContainer.style.display = 'block';
+                ytFrame.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+            }
+            new bootstrap.Modal(document.getElementById('playerModal')).show();
+        }
+
+        async function saveData() {
+            sessionStorage.setItem('loggedUser', JSON.stringify(user));
+            try {
+                await fetch('http://localhost:3000/api/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(user)
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        /* Essential helper functions */
+        function filterSongs() {
+            const val = document.getElementById('songFilter').value.toLowerCase();
+            document.querySelectorAll('#songsBody tr').forEach(row => {
+                row.style.display = row.querySelector('.song-title-cell').innerText.toLowerCase().includes(val) ? "" : "none";
+            });
+        }
         function showEmpty(name) {
             document.getElementById('currentTitle').innerText = name;
             document.getElementById('songsBody').innerHTML = "";
             document.getElementById('emptyState').style.display = "flex";
         }
-
         async function handleCreateList() {
             const input = document.getElementById('newListInput');
             const name = input.value.trim();
-            input.classList.remove('is-invalid');
-
             if (name && !user.playlists.find(p => p.name === name)) {
                 user.playlists.push({ name, songs: [] });
-                await saveData(); // Server Save
-                renderSidebar();
-                input.value = "";
+                await saveData(); renderSidebar(); input.value = "";
                 bootstrap.Modal.getInstance(document.getElementById('newListModal')).hide();
                 loadPlaylist(name);
-            } else {
-                input.classList.add('is-invalid');
-            }
+            } else { input.classList.add('is-invalid'); }
         }
-
         function playAll(name, event) {
             event.stopPropagation();
             const playlist = user.playlists.find(p => p.name === name);
-            if (playlist && playlist.songs.length > 0) {
-                const ids = playlist.songs.map(s => s.id).join(',');
-                document.getElementById('ytFrame').src = `https://www.youtube.com/embed/${playlist.songs[0].id}?playlist=${ids}&autoplay=1`;
+            const ytSongs = playlist.songs.filter(s => s.type !== 'mp3');
+            if (ytSongs.length > 0) {
+                document.getElementById('mp3Container').style.display = 'none';
+                document.getElementById('ytContainer').style.display = 'block';
+                document.getElementById('ytFrame').src = `https://www.youtube.com/embed/${ytSongs[0].id}?playlist=${ytSongs.map(s => s.id).join(',')}&autoplay=1`;
                 new bootstrap.Modal(document.getElementById('playerModal')).show();
-            }
+            } else if (playlist.songs.length > 0) { playSong(playlist.songs[0].id); }
         }
-
         async function sortSongs() {
             const playlist = user.playlists.find(p => p.name === activeList);
-            if (playlist) {
-                playlist.songs.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-                await saveData(); // Server Save
-                loadPlaylist(activeList);
-            }
+            if (playlist) { playlist.songs.sort((a, b) => (b.rating || 0) - (a.rating || 0)); await saveData(); loadPlaylist(activeList); }
         }
-
         async function updateRating(id, val) {
             const playlist = user.playlists.find(p => p.name === activeList);
             const song = playlist.songs.find(s => s.id === id);
-            if (song) {
-                song.rating = parseInt(val);
-                await saveData(); // Server Save
-            }
+            if (song) { song.rating = parseInt(val); await saveData(); }
         }
-
         async function removeSong(id) {
             const playlist = user.playlists.find(p => p.name === activeList);
             playlist.songs = playlist.songs.filter(s => s.id !== id);
-            await saveData(); // Server Save
-            loadPlaylist(activeList);
+            await saveData(); loadPlaylist(activeList);
         }
-
         async function deletePlaylist() {
             if (confirm(`Delete the entire list: ${activeList}?`)) {
                 user.playlists = user.playlists.filter(p => p.name !== activeList);
-                await saveData(); // Server Save
-                window.location.href = 'playlists.html';
+                await saveData(); window.location.href = 'playlists.html';
             }
         }
-
-        function playSong(id) {
-            document.getElementById('ytFrame').src = `https://www.youtube.com/embed/${id}?autoplay=1`;
-            new bootstrap.Modal(document.getElementById('playerModal')).show();
-        }
-
-
-        async function saveData() {
-
-            sessionStorage.setItem('loggedUser', JSON.stringify(user));
-
-            try {
-                const response = await fetch('http://localhost:3000/api/save', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(user)
-                });
-
-                if (!response.ok) {
-                    console.error("Server failed to save playlist data.");
-                }
-            } catch (error) {
-                console.error("Connection error while saving to server:", error);
-            }
-        }
-
         function logout() { sessionStorage.clear(); window.location.replace('login.html'); }
-        document.getElementById('playerModal').addEventListener('hidden.bs.modal', () => document.getElementById('ytFrame').src = "");
-
+        document.getElementById('playerModal').addEventListener('hidden.bs.modal', () => {
+            document.getElementById('ytFrame').src = "";
+            const p = document.getElementById('mp3Player'); p.pause(); p.src = "";
+        });
         init();
     </script>
 </body>

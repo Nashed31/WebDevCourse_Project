@@ -66,7 +66,9 @@ body {
     background: white;
 }
 
-.video-card:hover { transform: translateY(-5px); }
+.video-card:hover {
+    transform: translateY(-5px);
+}
 
 .card-title {
     display: -webkit-box;
@@ -107,8 +109,15 @@ body {
     cursor: pointer;
 }
 
-.list-group-item.active { background-color: var(--primary-color); border-color: var(--primary-color); color: white; }
-.list-group-item:hover:not(.active) { background-color: #f3f3f3; }
+.list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.list-group-item:hover:not(.active) {
+    background-color: #f3f3f3;
+}
 
 .table-container {
     background: white;
@@ -152,11 +161,20 @@ body {
 }
 
 /* Success Animations */
-.success-animation { animation: fadeIn 0.5s ease-out; }
+.success-animation {
+    animation: fadeIn 0.5s ease-out;
+}
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 footer {
@@ -166,4 +184,17 @@ footer {
     border-top: 1px solid rgba(0, 0, 0, 0.1);
     margin-top: auto;
     text-align: center;
+}
+
+.audio-container {
+    padding: 40px;
+    background: #222;
+    border-radius: 15px;
+    text-align: center;
+}
+
+audio {
+    width: 100%;
+    filter: invert(100%);
+    /* Makes the player match dark themes */
 }
