@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Hub | My Library</title>
+
+    <script>
+        if (!sessionStorage.getItem('loggedUser')) {
+            window.location.replace('login.html');
+        }
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="styleApp.css">
+</head>
+
+<body>
+
+    <nav class="navbar navbar-dark navbar-custom sticky-top shadow-sm py-2">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <a class="navbar-brand m-0" href="search.html"><i class="bi bi-house-door-fill"></i></a>
+                <a class="nav-link text-white px-2 fs-5 active" href="playlists.html"><i
+                        class="bi bi-music-note-list"></i></a>
+            </div>
+            <div class="text-white fw-bold fs-5" id="navName"></div>
+            <div class="dropdown">
+                <img src="" id="navPic" class="profile-btn dropdown-toggle" data-bs-toggle="dropdown">
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    <li><a class="dropdown-item py-2 text-danger fw-bold" href="#" onclick="logout()"><i
+                                class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-wrapper container">
+        <div class="row g-4">
+            <div class="col-md-4 col-lg-3">
+                <div class="playlist-sidebar">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold m-0 text-custom-primary">Library</h5>
+                        <button class="btn btn-sm text-white" style="background-color: var(--primary-color);"
+                            data-bs-toggle="modal" data-bs-target="#newListModal">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    <div class="list-group" id="playlistSidebar"></div>
+                </div>
+            </div>
+
+            <div class="col-md-8 col-lg-9">
+                <div class="table-container">
+                    <div class="d-md-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-bold m-0" id="currentTitle">Select Playlist</h3>
+                        <div id="tableActions" class="d-flex gap-3 mt-2 mt-md-0">
+                            <input type="text" id="songFilter" class="form-control filter-box shadow-sm"
+                                placeholder="Filter songs..." onkeyup="filterSongs()">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="sortSongs()"><i
+                                    class="bi bi-sort-numeric-down"></i> Sort</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deletePlaylist()"><i
+                                    class="bi bi-trash"></i> Delete</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table align-middle m-0" id="playlistTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="5%">#</th>
+                                    <th width="50%">Title</th>
+                                    <th width="15%" class="text-center">Rating</th>
+                                    <th width="15%" class="text-center">Play</th>
+                                    <th width="15%" class="text-center">Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody id="songsBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="emptyState" class="empty-state" style="display:none;">
+                        <i class="bi bi-music-note-beamed display-1"></i>
+                        <h4 class="fw-bold">This list is empty</h4>
+                        <p>Time to add some Songs!</p>
+                        <a href="search.html" class="btn text-white rounded-pill px-4 mt-2"
+                            style="background-color: var(--primary-color);">Find Music</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="newListModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow border-0">
+                <div class="modal-header text-white" style="background-color: var(--primary-color);">
+                    <h5 class="modal-title">New Playlist</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="newListInput" class="form-control form-control-lg"
+                        placeholder="Enter playlist name...">
+                    <div class="invalid-feedback">Playlist name required or already exists.</div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn text-white w-100 fw-bold" style="background-color: var(--primary-color);"
+                        onclick="handleCreateList()">Create Playlist</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="playerModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-dark border-0">
+                <div class="modal-body p-0">
+                    <div class="ratio ratio-16x9"><iframe id="ytFrame" allowfullscreen allow="autoplay"></iframe></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container text-center text-muted small">© 2026 Telhai WebDev Course Project • Nashed Awidat</div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let user = JSON.parse(sessionStorage.getItem('loggedUser'));
+        let activeList = null;
+
+        // Get the specific list from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const listFromUrl = urlParams.get('list');
+
+        document.getElementById('navName').innerText = `Welcome, ${user.privateName}`;
+        document.getElementById('navPic').src = user.picUrl;
+
+        function init() {
+            renderSidebar();
+            // Logic to open the correct playlist immediately
+            if (listFromUrl && user.playlists.find(p => p.name === listFromUrl)) {
+                loadPlaylist(listFromUrl);
+            } else if (user.playlists.length > 0) {
+                loadPlaylist(user.playlists[0].name);
+            } else {
+                showEmpty("Library");
+            }
+        }
+
+        function renderSidebar() {
+            const sidebar = document.getElementById('playlistSidebar');
+            sidebar.innerHTML = user.playlists.map(p => `
+                <div class="list-group-item ${p.name === activeList ? 'active' : ''}" onclick="loadPlaylist('${p.name.replace(/'/g, "\\'")}')">
+                    <span class="text-truncate me-2">${p.name}</span>
+                    <button class="btn btn-xs p-0 text-white" onclick="playAll('${p.name.replace(/'/g, "\\'")}', event)">
+                        <i class="bi bi-play-circle-fill fs-5"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function loadPlaylist(name) {
+            activeList = name;
+            renderSidebar();
+            const playlist = user.playlists.find(p => p.name === name);
+            const body = document.getElementById('songsBody');
+            const empty = document.getElementById('emptyState');
+
+            document.getElementById('currentTitle').innerText = name;
+            document.getElementById('songFilter').value = "";
+
+            if (!playlist || playlist.songs.length === 0) {
+                body.innerHTML = "";
+                empty.style.display = "flex";
+                return;
+            }
+
+            empty.style.display = "none";
+            body.innerHTML = playlist.songs.map((s, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td class="fw-bold song-title-cell">${s.title}</td>
+                    <td class="text-center"><input type="number" class="rating-input" min="1" max="10" value="${s.rating || 1}" onchange="updateRating('${s.id}', this.value)"></td>
+                    <td class="text-center"><button class="btn btn-sm btn-primary" onclick="playSong('${s.id}')"><i class="bi bi-play-fill"></i></button></td>
+                    <td class="text-center"><button class="btn btn-sm btn-danger" onclick="removeSong('${s.id}')"><i class="bi bi-trash"></i></button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filterSongs() {
+            const val = document.getElementById('songFilter').value.toLowerCase();
+            const rows = document.querySelectorAll('#songsBody tr');
+            rows.forEach(row => {
+                const title = row.querySelector('.song-title-cell').innerText.toLowerCase();
+                row.style.display = title.includes(val) ? "" : "none";
+            });
+        }
+
+        function showEmpty(name) {
+            document.getElementById('currentTitle').innerText = name;
+            document.getElementById('songsBody').innerHTML = "";
+            document.getElementById('emptyState').style.display = "flex";
+        }
+
+        function handleCreateList() {
+            const input = document.getElementById('newListInput');
+            const name = input.value.trim();
+            input.classList.remove('is-invalid');
+
+            if (name && !user.playlists.find(p => p.name === name)) {
+                user.playlists.push({ name, songs: [] });
+                saveData();
+                renderSidebar();
+                input.value = "";
+                bootstrap.Modal.getInstance(document.getElementById('newListModal')).hide();
+                loadPlaylist(name);
+            } else {
+                input.classList.add('is-invalid');
+            }
+        }
+
+        function playAll(name, event) {
+            event.stopPropagation();
+            const playlist = user.playlists.find(p => p.name === name);
+            if (playlist && playlist.songs.length > 0) {
+                const ids = playlist.songs.map(s => s.id).join(',');
+                document.getElementById('ytFrame').src = `https://www.youtube.com/embed/${playlist.songs[0].id}?playlist=${ids}&autoplay=1`;
+                new bootstrap.Modal(document.getElementById('playerModal')).show();
+            }
+        }
+
+        function sortSongs() {
+            const playlist = user.playlists.find(p => p.name === activeList);
+            if (playlist) {
+                playlist.songs.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+                loadPlaylist(activeList);
+            }
+        }
+
+        function updateRating(id, val) {
+            const playlist = user.playlists.find(p => p.name === activeList);
+            const song = playlist.songs.find(s => s.id === id);
+            if (song) {
+                song.rating = parseInt(val);
+                saveData();
+            }
+        }
+
+        function removeSong(id) {
+            const playlist = user.playlists.find(p => p.name === activeList);
+            playlist.songs = playlist.songs.filter(s => s.id !== id);
+            saveData();
+            loadPlaylist(activeList);
+        }
+
+        function deletePlaylist() {
+            if (confirm(`Delete the entire list: ${activeList}?`)) {
+                user.playlists = user.playlists.filter(p => p.name !== activeList);
+                saveData();
+                // Redirect to refresh and show library or first available list
+                window.location.href = 'playlists.html';
+            }
+        }
+
+        function playSong(id) {
+            document.getElementById('ytFrame').src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+            new bootstrap.Modal(document.getElementById('playerModal')).show();
+        }
+
+        function saveData() {
+            sessionStorage.setItem('loggedUser', JSON.stringify(user));
+            const all = JSON.parse(localStorage.getItem('users') || '[]');
+            const idx = all.findIndex(u => u.username === user.username);
+            if (idx !== -1) {
+                all[idx] = user;
+                localStorage.setItem('users', JSON.stringify(all));
+            }
+        }
+
+        function logout() { sessionStorage.clear(); window.location.replace('login.html'); }
+        document.getElementById('playerModal').addEventListener('hidden.bs.modal', () => document.getElementById('ytFrame').src = "");
+
+        init();
+    </script>
+</body>
+
+</html>
