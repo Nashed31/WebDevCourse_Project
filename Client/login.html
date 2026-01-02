@@ -65,7 +65,7 @@
     <script>
         document.body.style.display = "flex";
 
-        document.getElementById('loginForm').addEventListener('submit', function (e) {
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const userName = document.getElementById('userName');
             const password = document.getElementById('password');
@@ -88,15 +88,33 @@
 
             if (hasEmptyFields) return;
 
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const userMatch = users.find(u => u.username === userName.value.trim() && u.password === password.value);
 
-            if (userMatch) {
-                sessionStorage.setItem('loggedUser', JSON.stringify(userMatch));
-                window.location.replace('search.html');
-            } else {
-                authAlert.style.display = 'block';
+            try {
+                const response = await fetch('http://localhost:3000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: userName.value.trim(),
+                        password: password.value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Save user to session to maintain login state on frontend
+                    sessionStorage.setItem('loggedUser', JSON.stringify(data.user));
+                    window.location.replace('search.html');
+                } else {
+                    authAlert.style.display = 'block';
+                }
+            } catch (error) {
+                console.error("Connection error:", error);
+                alert("Cannot connect to server. Make sure server.js is running.");
             }
+
         });
     </script>
 </body>

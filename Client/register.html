@@ -43,8 +43,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-custom-primary">Profile Picture
-                        URL</label>
+                    <label class="form-label fw-bold text-custom-primary">Profile Picture URL</label>
                     <input type="url" id="picUrl" class="form-control" placeholder="https://example.com/image.jpg">
                     <div class="invalid-feedback">Valid URL required.</div>
                 </div>
@@ -77,10 +76,11 @@
         © 2026 Telhai WebDev Course Project • Nashed Awidat
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.body.style.display = "flex";
 
-        document.getElementById('registerForm').addEventListener('submit', function (e) {
+        document.getElementById('registerForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const inputs = document.querySelectorAll('.form-control');
             inputs.forEach(input => input.classList.remove('is-invalid'));
@@ -92,25 +92,21 @@
             const password = document.getElementById('pass');
             const passwordConfirm = document.getElementById('passConfirm');
 
+            // Client-side required field check
             [userName, privateName, userPic, password, passwordConfirm].forEach(inp => {
                 if (!inp.value.trim()) {
                     inp.classList.add('is-invalid'); isValid = false;
                 }
             });
 
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            if (users.find(user => user.username === userName.value.trim())) {
-                userName.classList.add('is-invalid');
-                document.getElementById('userError').innerText = "Username already taken.";
-                isValid = false;
-            }
-
+            // Password complexity check
             const passRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{6,}$/;
             if (password.value && !passRegex.test(password.value)) {
                 password.classList.add('is-invalid');
                 isValid = false;
             }
 
+            // Confirm password check
             if (password.value !== passwordConfirm.value) {
                 passwordConfirm.classList.add('is-invalid');
                 isValid = false;
@@ -118,15 +114,36 @@
 
             if (!isValid) return;
 
-            users.push({
-                username: userName.value.trim(),
-                privateName: privateName.value.trim(),
-                picUrl: userPic.value.trim(),
-                password: password.value,
-                playlists: []
-            });
-            localStorage.setItem('users', JSON.stringify(users));
-            window.location.href = 'login.html';
+
+            try {
+                const userData = {
+                    username: userName.value.trim(),
+                    privateName: privateName.value.trim(),
+                    picUrl: userPic.value.trim(),
+                    password: password.value
+                };
+
+                const response = await fetch('http://localhost:3000/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    window.location.href = 'login.html';
+                } else {
+                    // Handle server-side errors (like "Username taken")
+                    userName.classList.add('is-invalid');
+                    document.getElementById('userError').innerText = data.error || "Registration failed.";
+                }
+            } catch (error) {
+                console.error("Connection error:", error);
+                alert("Cannot connect to server. Make sure server.js is running.");
+            }
         });
     </script>
 </body>

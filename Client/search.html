@@ -74,11 +74,14 @@
                 <div class="modal-body" id="favModalBody">
                     <label class="form-label fw-bold">Select Existing Playlist</label>
                     <select class="form-select mb-3" id="existingPlaylists"></select>
+                    <div class="invalid-feedback" id="existingPlaylistsError">Please select a playlist.</div>
 
                     <div class="text-center text-muted my-2 small">— OR —</div>
 
                     <label class="form-label fw-bold">Create New Playlist</label>
                     <input type="text" class="form-control" id="newPlaylistName" placeholder="Enter new name...">
+                    <div class="invalid-feedback" id="newPlaylistNameError">Please enter a name for the new playlist.
+                    </div>
                 </div>
                 <div class="modal-footer border-0" id="favModalFooter">
                     <button class="btn text-white w-100 fw-bold" style="background-color: var(--primary-color);"
@@ -201,7 +204,7 @@
             new bootstrap.Modal(document.getElementById('favModal')).show();
         }
 
-        function confirmSave() {
+        async function confirmSave() {
             const newNameInput = document.getElementById('newPlaylistName');
             const selectElement = document.getElementById('existingPlaylists');
 
@@ -219,7 +222,6 @@
 
             if (!user.playlists) user.playlists = [];
 
-            // Define playlist variable properly
             let playlist = user.playlists.find(p => p.name === playlistName);
 
             if (!playlist) {
@@ -229,7 +231,9 @@
 
             if (!playlist.songs.find(s => s.id === pendingSong.id)) {
                 playlist.songs.push(pendingSong);
-                saveUser();
+
+
+                await saveUser();
 
                 const gridBtn = document.getElementById(`btn-${pendingSong.id}`);
                 if (gridBtn) {
@@ -245,7 +249,6 @@
             footer.style.display = 'none';
             header.style.display = 'none';
 
-            // Route with URL parameter ?list=
             body.innerHTML = `
                 <div class="text-center py-4 success-animation">
                     <i class="bi bi-check-circle-fill text-success" style="font-size: 3.5rem;"></i>
@@ -287,14 +290,27 @@
             new bootstrap.Modal(document.getElementById('videoModal')).show();
         }
 
-        function saveUser() {
+        async function saveUser() {
+            // Keep local session state updated
             sessionStorage.setItem('loggedUser', JSON.stringify(user));
-            const all = JSON.parse(localStorage.getItem('users') || '[]');
-            const idx = all.findIndex(u => u.username === user.username);
-            if (idx !== -1) {
-                all[idx] = user;
-                localStorage.setItem('users', JSON.stringify(all));
+
+
+            try {
+                const response = await fetch('http://localhost:3000/api/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(user)
+                });
+
+                if (!response.ok) {
+                    console.error("Server failed to save data");
+                }
+            } catch (error) {
+                console.error("Connection error while saving:", error);
             }
+
         }
 
         function logout() {

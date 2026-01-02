@@ -132,7 +132,6 @@
         let user = JSON.parse(sessionStorage.getItem('loggedUser'));
         let activeList = null;
 
-        // Get the specific list from URL
         const urlParams = new URLSearchParams(window.location.search);
         const listFromUrl = urlParams.get('list');
 
@@ -141,7 +140,6 @@
 
         function init() {
             renderSidebar();
-            // Logic to open the correct playlist immediately
             if (listFromUrl && user.playlists.find(p => p.name === listFromUrl)) {
                 loadPlaylist(listFromUrl);
             } else if (user.playlists.length > 0) {
@@ -206,14 +204,14 @@
             document.getElementById('emptyState').style.display = "flex";
         }
 
-        function handleCreateList() {
+        async function handleCreateList() {
             const input = document.getElementById('newListInput');
             const name = input.value.trim();
             input.classList.remove('is-invalid');
 
             if (name && !user.playlists.find(p => p.name === name)) {
                 user.playlists.push({ name, songs: [] });
-                saveData();
+                await saveData(); // Server Save
                 renderSidebar();
                 input.value = "";
                 bootstrap.Modal.getInstance(document.getElementById('newListModal')).hide();
@@ -233,35 +231,35 @@
             }
         }
 
-        function sortSongs() {
+        async function sortSongs() {
             const playlist = user.playlists.find(p => p.name === activeList);
             if (playlist) {
                 playlist.songs.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+                await saveData(); // Server Save
                 loadPlaylist(activeList);
             }
         }
 
-        function updateRating(id, val) {
+        async function updateRating(id, val) {
             const playlist = user.playlists.find(p => p.name === activeList);
             const song = playlist.songs.find(s => s.id === id);
             if (song) {
                 song.rating = parseInt(val);
-                saveData();
+                await saveData(); // Server Save
             }
         }
 
-        function removeSong(id) {
+        async function removeSong(id) {
             const playlist = user.playlists.find(p => p.name === activeList);
             playlist.songs = playlist.songs.filter(s => s.id !== id);
-            saveData();
+            await saveData(); // Server Save
             loadPlaylist(activeList);
         }
 
-        function deletePlaylist() {
+        async function deletePlaylist() {
             if (confirm(`Delete the entire list: ${activeList}?`)) {
                 user.playlists = user.playlists.filter(p => p.name !== activeList);
-                saveData();
-                // Redirect to refresh and show library or first available list
+                await saveData(); // Server Save
                 window.location.href = 'playlists.html';
             }
         }
@@ -271,13 +269,25 @@
             new bootstrap.Modal(document.getElementById('playerModal')).show();
         }
 
-        function saveData() {
+
+        async function saveData() {
+
             sessionStorage.setItem('loggedUser', JSON.stringify(user));
-            const all = JSON.parse(localStorage.getItem('users') || '[]');
-            const idx = all.findIndex(u => u.username === user.username);
-            if (idx !== -1) {
-                all[idx] = user;
-                localStorage.setItem('users', JSON.stringify(all));
+
+            try {
+                const response = await fetch('http://localhost:3000/api/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(user)
+                });
+
+                if (!response.ok) {
+                    console.error("Server failed to save playlist data.");
+                }
+            } catch (error) {
+                console.error("Connection error while saving to server:", error);
             }
         }
 

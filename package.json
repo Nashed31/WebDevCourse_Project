@@ -1,0 +1,27 @@
+{
+  "name": "webdevcourse_project",
+  "version": "1.0.0",
+  "description": "[WebDevCourse_Project Deployment](https://nashed31.github.io/WebDevCourse_Project/)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nashed31/WebDevCourse_Project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Nashed31/WebDevCourse_Project/issues"
+  },
+  "homepage": "https://github.com/Nashed31/WebDevCourse_Project#readme",
+  "dependencies": {
+    "body-parser": "^2.2.1",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.3"
+  }
+}
